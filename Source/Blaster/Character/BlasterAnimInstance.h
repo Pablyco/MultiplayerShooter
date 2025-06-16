@@ -40,4 +40,22 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, Category= "Movement", meta=(AllowPrivateAccess = "true"))
 	bool bIsAiming;
+
+	UPROPERTY(BlueprintReadOnly, Category= "Movement", meta=(AllowPrivateAccess = "true"))
+	float YawOffset;
+
+	UPROPERTY(BlueprintReadOnly, Category= "Movement", meta=(AllowPrivateAccess = "true"))
+	float Lean;
+	
+
+	FRotator CharacterRotationLastFrame;
+	FRotator CharacterRotation;
+	FRotator DeltaRotation;
+
+	UPROPERTY(BlueprintReadOnly, Category= "Movement", meta=(AllowPrivateAccess = "true"))
+	float AOYaw;
+
+	UPROPERTY(BlueprintReadOnly, Category= "Movement", meta=(AllowPrivateAccess = "true"))
+	float AOPitch;
+	
 };

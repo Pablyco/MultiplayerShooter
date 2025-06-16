@@ -44,6 +44,7 @@ protected:
 	void CrouchButtonPressed();
 	void AimButtonPressed();
 	void AimButtonReleased();
+	void AimOffset(float DeltaTime);
 
 private:
 
@@ -92,11 +93,15 @@ private:
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCombatComponent* Combat;
 
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed();
+
+	float AOYaw;
+	float AOPitch;
+	FRotator StartingAimRot;
 
 public:
 
@@ -104,6 +109,7 @@ public:
 	bool IsWeaponEquipped();
 	bool IsAiming();
 
-	
+	FORCEINLINE float GetAOYaw() const { return AOYaw; }
+	FORCEINLINE float GetAOPitch() const { return AOPitch; }
 };
 

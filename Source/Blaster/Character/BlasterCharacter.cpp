@@ -8,8 +8,10 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blaster/BlasterComponents/CombatComponent.h"
 #include "Blaster/Weapon/Weapon.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values
@@ -32,10 +34,13 @@ ABlasterCharacter::ABlasterCharacter()
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
 	OverheadWidget->SetupAttachment(RootComponent);
 
-	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
+	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("Combat"));
 	Combat->SetIsReplicated(true);
 
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
+
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera,ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera,ECR_Ignore);
 	
 	
 	
@@ -57,7 +62,6 @@ void ABlasterCharacter::PostInitializeComponents()
 	if (Combat)
 	{
 		Combat->Character = this;
-		
 	}
 }
 
@@ -71,6 +75,7 @@ void ABlasterCharacter::BeginPlay()
 void ABlasterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	AimOffset(DeltaTime);
 }
 
 
@@ -157,11 +162,17 @@ void ABlasterCharacter::EquipButtonPressed()
 		if (HasAuthority())
 		{
 			Combat->EquipWeapon(OverlappingWeapon);
+			GEngine->AddOnScreenDebugMessage(-1,1.0f,FColor::Yellow,TEXT("Authority"));
 		}
 		else
 		{
 			ServerEquipButtonPressed();
+			GEngine->AddOnScreenDebugMessage(-1,1.0f,FColor::Yellow,TEXT("Client"));
 		}
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1,1.0f,FColor::Red,TEXT("NO COMBAT"));
 	}
 }
 
@@ -191,6 +202,33 @@ void ABlasterCharacter::AimButtonReleased()
 	{
 		Combat->SetAiming(false);
 	}
+}
+
+void ABlasterCharacter::AimOffset(float DeltaTime)
+{
+	if (Combat && Combat->EquippedWeapon == nullptr) return;
+	
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	float Speed = Velocity.Size();
+
+	bool bIsInAir = GetCharacterMovement()->IsFalling();
+	
+	if (Speed == 0.f && !bIsInAir) // Still , not jumping
+	{
+		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw,0.f);
+		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation,StartingAimRot);
+		AOYaw = DeltaAimRotation.Yaw;
+		bUseControllerRotationYaw = false;
+	}
+	if (Speed > 0.f || bIsInAir) // Running or jumping
+	{
+		StartingAimRot = FRotator(0.f, GetBaseAimRotation().Yaw,0.f);
+		AOYaw = 0.f;
+		bUseControllerRotationYaw = true;
+	}
+
+	AOPitch = GetBaseAimRotation().Pitch;
 }
 
 void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
