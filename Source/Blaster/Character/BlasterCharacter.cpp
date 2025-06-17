@@ -229,6 +229,13 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 	}
 
 	AOPitch = GetBaseAimRotation().Pitch;
+	if (AOPitch > 90.f && !IsLocallyControlled())
+	{
+		// map pitch from (270,360) to (-90,0)
+		FVector2D InRange(270.f,360.f);
+		FVector2D OutRange(-90.f,0.f);
+		AOPitch = FMath::GetMappedRangeValueClamped(InRange,OutRange,AOPitch);
+	}
 }
 
 void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
@@ -265,5 +272,11 @@ bool ABlasterCharacter::IsWeaponEquipped()
 bool ABlasterCharacter::IsAiming()
 {
 	return (Combat && Combat->bAiming);
+}
+
+AWeapon* ABlasterCharacter::GetEquippedWeapon()
+{
+	if (Combat == nullptr) return nullptr;
+	return Combat->EquippedWeapon;
 }
 

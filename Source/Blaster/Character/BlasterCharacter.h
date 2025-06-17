@@ -111,5 +111,7 @@ public:
 
 	FORCEINLINE float GetAOYaw() const { return AOYaw; }
 	FORCEINLINE float GetAOPitch() const { return AOPitch; }
+
+	AWeapon* GetEquippedWeapon();
 };
 
