@@ -5,11 +5,13 @@
 #include "Components/BoxComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 
 
 AProjectile::AProjectile()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("Collision Box"));
 	SetRootComponent(CollisionBox);
@@ -25,13 +27,39 @@ AProjectile::AProjectile()
 	
 }
 
+void AProjectile::Destroyed()
+{
+	Super::Destroyed();
+
+	if (ImpactParticles)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,ImpactParticles,GetActorLocation());
+	}
+	if (ImpactSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ImpactSound, GetActorLocation());
+	}
+}
+
 void AProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+
 	if (Tracer)
 	{
-		
+		UNiagaraFunctionLibrary::SpawnSystemAttached(Tracer,CollisionBox,FName(),GetActorLocation(),GetActorRotation(),EAttachLocation::KeepWorldPosition,false,true);
 	}
+	
+	if (HasAuthority())
+	{
+		CollisionBox->OnComponentHit.AddDynamic(this,&AProjectile::OnHit);
+	}
+}
+
+void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse, const FHitResult& Hit)
+{
+	Destroy();
 }
 
 void AProjectile::Tick(float DeltaTime)

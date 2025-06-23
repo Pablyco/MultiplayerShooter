@@ -37,6 +37,11 @@ AWeapon::AWeapon()
 	
 }
 
+void AWeapon::Fire(const FVector& HitTarget)
+{
+	
+}
+
 void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
@@ -125,7 +130,7 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 	}
 }
 
-void AWeapon::Fire(const FVector& HitTarget)
+void AWeapon::FireFx()
 {
 	if (FireAnimation)
 	{
