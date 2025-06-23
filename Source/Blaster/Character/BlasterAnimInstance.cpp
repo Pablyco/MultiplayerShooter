@@ -34,6 +34,7 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	EquippedWeapon = BlasterCharacter->GetEquippedWeapon();
 	bIsCrouch = BlasterCharacter->bIsCrouched;
 	bIsAiming = BlasterCharacter->IsAiming();
+	TurningInPlace = BlasterCharacter->GetTurningInPlace();
 
 	FRotator AimRotation = BlasterCharacter->GetBaseAimRotation();
 	FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(BlasterCharacter->GetVelocity());
@@ -62,6 +63,5 @@ void UBlasterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 		LeftHandTransform.SetLocation(OutPosition);
 		LeftHandTransform.SetRotation(FQuat(OutRotation));
-		
 	}
 }

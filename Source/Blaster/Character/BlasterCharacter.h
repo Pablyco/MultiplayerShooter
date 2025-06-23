@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "GameFramework/Character.h"
 #include "BlasterCharacter.generated.h"
 
@@ -19,21 +20,18 @@ private:
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
 	ABlasterCharacter();
-
-
-
 	virtual void Tick(float DeltaTime) override;
-
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
+	void PlayFireMontage(bool bAiming);
+
 	
 
 protected:
-	// Called when the game starts or when spawned
 
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
 	virtual void NotifyControllerChanged() override;
 	
 	virtual void BeginPlay() override;
@@ -45,6 +43,9 @@ protected:
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void AimOffset(float DeltaTime);
+	virtual void Jump() override;
+	void FireButtonPressed();
+	void FireButtonReleased();
 
 private:
 
@@ -82,6 +83,10 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* AimAction;
 
+	/** Fire Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* FireAction;
+
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(allowPrivateAccess="true"))
@@ -100,9 +105,15 @@ private:
 	void ServerEquipButtonPressed();
 
 	float AOYaw;
+	float InterpAOYaw;
 	float AOPitch;
 	FRotator StartingAimRot;
 
+	ETurningInPlace TurningInPlace;
+	void TurnInPlace(float DeltaTime);
+
+	UPROPERTY(EditAnywhere,Category= Combat)
+	class UAnimMontage* FireWeaponMontage;
 public:
 
 	void SetOverlappingWeapon(AWeapon* Weapon);
@@ -111,7 +122,6 @@ public:
 
 	FORCEINLINE float GetAOYaw() const { return AOYaw; }
 	FORCEINLINE float GetAOPitch() const { return AOPitch; }
-
 	AWeapon* GetEquippedWeapon();
+	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 };
-

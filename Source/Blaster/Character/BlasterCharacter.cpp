@@ -36,13 +36,17 @@ ABlasterCharacter::ABlasterCharacter()
 
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("Combat"));
 	Combat->SetIsReplicated(true);
+	
 
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera,ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Camera,ECR_Ignore);
-	
-	
+	GetCharacterMovement()->RotationRate = FRotator(0.f,0.f,850.f);
+
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+	NetUpdateFrequency = 66.f;
+	MinNetUpdateFrequency = 33.f;
 	
 }
 void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -62,8 +66,11 @@ void ABlasterCharacter::PostInitializeComponents()
 	if (Combat)
 	{
 		Combat->Character = this;
+		Combat->PrimaryComponentTick.bCanEverTick = true;
 	}
 }
+
+
 
 void ABlasterCharacter::BeginPlay()
 {
@@ -97,7 +104,7 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 {
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ABlasterCharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::Move);
@@ -109,6 +116,9 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		EnhancedInputComponent->BindAction(AimAction,ETriggerEvent::Started,this,&ABlasterCharacter::AimButtonPressed);
 		EnhancedInputComponent->BindAction(AimAction,ETriggerEvent::Completed,this,&ABlasterCharacter::AimButtonReleased);
+
+		EnhancedInputComponent->BindAction(FireAction,ETriggerEvent::Started,this,&ABlasterCharacter::FireButtonPressed);
+		EnhancedInputComponent->BindAction(FireAction,ETriggerEvent::Completed,this,&ABlasterCharacter::FireButtonReleased);
 	}
 
 }
@@ -219,13 +229,19 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw,0.f);
 		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation,StartingAimRot);
 		AOYaw = DeltaAimRotation.Yaw;
-		bUseControllerRotationYaw = false;
+		if (TurningInPlace == ETurningInPlace::ETIP_NotTurning)
+		{
+			InterpAOYaw = AOYaw;
+		}
+		bUseControllerRotationYaw = true;
+		TurnInPlace(DeltaTime);
 	}
 	if (Speed > 0.f || bIsInAir) // Running or jumping
 	{
 		StartingAimRot = FRotator(0.f, GetBaseAimRotation().Yaw,0.f);
 		AOYaw = 0.f;
 		bUseControllerRotationYaw = true;
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 	}
 
 	AOPitch = GetBaseAimRotation().Pitch;
@@ -238,6 +254,28 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 	}
 }
 
+void ABlasterCharacter::TurnInPlace(float DeltaTime)
+{
+	if (AOYaw > 90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Right;
+	}
+	else if (AOYaw < -90.f)
+	{
+		TurningInPlace = ETurningInPlace::ETIP_Left;
+	}
+	if (TurningInPlace != ETurningInPlace::ETIP_NotTurning)
+	{
+		InterpAOYaw = FMath::FInterpTo(InterpAOYaw,0.f,DeltaTime,4.f);
+		AOYaw = InterpAOYaw;
+		if (FMath::Abs(AOYaw) < 15.f)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+			StartingAimRot = FRotator(0.f,GetBaseAimRotation().Yaw,0.f);
+		}
+	}
+}
+
 void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
 {
 	if (Combat)
@@ -245,6 +283,8 @@ void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
 		Combat->EquipWeapon(OverlappingWeapon);
 	}
 }
+
+
 
 void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
@@ -280,3 +320,50 @@ AWeapon* ABlasterCharacter::GetEquippedWeapon()
 	return Combat->EquippedWeapon;
 }
 
+void ABlasterCharacter::Jump()
+{
+	if (bIsCrouched)
+	{
+		UnCrouch();
+	}
+	else
+	{
+		Super::Jump();
+	}
+}
+
+void ABlasterCharacter::FireButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->FireButtonPressed(true);
+	}
+}
+
+void ABlasterCharacter::FireButtonReleased()
+{
+	if (Combat)
+	{
+		Combat->FireButtonPressed(false);
+	}
+}
+
+void ABlasterCharacter::PlayFireMontage(bool bAiming)
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	
+	if (AnimInstance && FireWeaponMontage)
+	{
+		AnimInstance->Montage_Play(FireWeaponMontage);
+		FName SectionName;
+		SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
+		AnimInstance->Montage_JumpToSection(SectionName);
+		/*
+		UE_LOG(LogTemp, Warning, TEXT("Type: %s"), *SectionName.ToString());
+		GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Black, FString::Printf(TEXT("Bool: %s"), bAiming ? TEXT("true") : TEXT("false")));
+		*/
+	}
+	
+}
