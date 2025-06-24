@@ -70,4 +70,11 @@ private:
 
 	UPROPERTY()
 	bool bFireButtonPressed;
+
+	/**
+	 * HUD and Crosshairs
+	 **/
+
+	float CrosshairVelocityFactor;
+	float CrosshairInAirFactor;
 };
