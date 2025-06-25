@@ -27,7 +27,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	void ShowPickupWidget(bool bShowWidget);
+	
+	//Multicast Event for show particles to all clients
 	virtual void FireFx();
+	void SpawnCasing();
 	virtual void Fire(const FVector& HitTarget);
 
 
@@ -55,6 +58,17 @@ public:
 	
 	UPROPERTY(EditAnywhere)
 	float ZoomInterpSpeed = 20.f;
+
+	/**
+	 * "Automatic Fire"
+	 **/
+
+	
+	UPROPERTY(EditAnywhere,Category="Combat")
+	float FireDelay = 0.15f;
+
+	UPROPERTY(EditAnywhere,Category="Combat")
+	bool bAutomatic = true;
 
 protected:
 	virtual void BeginPlay() override;

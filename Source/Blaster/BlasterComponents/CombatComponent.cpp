@@ -11,6 +11,7 @@
 #include "DrawDebugHelpers.h"
 #include "Blaster/PlayerController/BlasterPlayerController.h"
 #include "Camera/CameraComponent.h"
+#include "TimerManager.h"
 
 
 UCombatComponent::UCombatComponent()
@@ -45,6 +46,7 @@ void UCombatComponent::BeginPlay()
 	}
 	
 }
+
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -56,6 +58,161 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 		HitTarget = HitResult.ImpactPoint;
 		SetHUDCrosshairs(DeltaTime);
 		InterpFOV(DeltaTime);
+	}
+}
+
+void UCombatComponent::FireButtonPressed(bool bPressed)
+{
+	bFireButtonPressed = bPressed;
+
+	if (bFireButtonPressed && EquippedWeapon)
+	{
+		Fire();
+	}
+}
+
+void UCombatComponent::Fire()
+{
+	UE_LOG(LogTemp, Warning, TEXT("%s"), bCanFire ? TEXT("Fire") : TEXT("Can't fire"));
+	if (bCanFire)
+	{
+		bCanFire = false;
+		ServerFire(HitTarget);
+		if (EquippedWeapon)
+		{
+			EquippedWeapon->SpawnCasing();
+			CrosshairShootingFactor = 1.f;
+		}
+		StartFireTimer();	
+	}
+}
+
+void UCombatComponent::StartFireTimer()
+{
+	if (!EquippedWeapon || !Character) return;
+
+	Character->GetWorldTimerManager().SetTimer(FireTimer,this,&UCombatComponent::FireTimerFinished,EquippedWeapon->FireDelay);
+	
+}
+
+void UCombatComponent::FireTimerFinished()
+{
+	if (!EquippedWeapon) return;
+
+	bCanFire = true;
+
+	if (bFireButtonPressed && EquippedWeapon->bAutomatic)
+	{
+		Fire();
+	}
+}
+
+void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
+{
+	if (EquippedWeapon == nullptr) return;
+	EquippedWeapon->Fire(TraceHitTarget);
+	MulticastFire(TraceHitTarget);
+}
+
+void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
+{
+	if (EquippedWeapon == nullptr) return;
+	if (Character)
+	{
+		Character->PlayFireMontage(bAiming);
+		EquippedWeapon->FireFx();
+	}
+}
+
+void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
+{
+	// Safety check: ensure both character and weapon exist
+	if (Character == nullptr || WeaponToEquip == nullptr)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Equipped Error");
+		return;
+	}
+
+	// Debug message for successful weapon equip
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Equipped"));
+
+	// Assign and configure the equipped weapon
+	EquippedWeapon = WeaponToEquip;
+	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+
+	// Attach the weapon to the character’s right hand socket
+	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
+	if (HandSocket)
+	{
+		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
+	}
+
+	// Set the character as the owner of the weapon
+	EquippedWeapon->SetOwner(Character);
+
+	// Update rotation settings for aiming
+	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+	Character->bUseControllerRotationYaw = true;
+}
+
+void UCombatComponent::OnRep_EquippedWeapon()
+{
+	// Called on clients when EquippedWeapon is updated via replication
+	if (EquippedWeapon && Character)
+	{
+		// Update character rotation behavior to aim with the weapon
+		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+		Character->bUseControllerRotationYaw = true;
+	}
+}
+
+void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
+{
+	FVector2D ViewportSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewportSize);
+	}
+	FVector2D CrossHairLocation(ViewportSize.X/2, ViewportSize.Y/2);
+	FVector CrosshairWorldPosition;
+	FVector CrosshairWorldDirection;
+
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+		UGameplayStatics::GetPlayerController(this,0),
+		CrossHairLocation,
+		CrosshairWorldPosition,
+		CrosshairWorldDirection
+		);
+
+	if (bScreenToWorld)
+	{
+		FVector Start = CrosshairWorldPosition;
+		if (Character)
+		{
+			float DistanceToCharacter = (Character->GetActorLocation() - Start).Size();
+			Start += CrosshairWorldDirection*(DistanceToCharacter + 50.f);
+		}
+
+		
+		FVector End = Start + CrosshairWorldDirection * TRACE_LENGHT;
+
+
+		GetWorld()->LineTraceSingleByChannel(TraceHitResult,
+			Start,
+			End,
+			ECC_Visibility
+		);
+		if (TraceHitResult.GetActor() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>())
+		{
+			HUDPackage.CrosshairColor = FLinearColor::Red;
+			bEnemyInScope = true;
+		}
+		else
+		{
+			HUDPackage.CrosshairColor = FLinearColor::White;
+			bEnemyInScope = false;
+		}
+		if (!TraceHitResult.bBlockingHit) TraceHitResult.ImpactPoint = End;
 	}
 }
 
@@ -183,134 +340,3 @@ void UCombatComponent::ServerSetAiming_Implementation(bool bIsAiming)
 		Character->GetCharacterMovement()->MaxWalkSpeed = bIsAiming ? AimWalkSpeed : BaseWalkSpeed;
 	}
 }
-
-void UCombatComponent::OnRep_EquippedWeapon()
-{
-	// Called on clients when EquippedWeapon is updated via replication
-	if (EquippedWeapon && Character)
-	{
-		// Update character rotation behavior to aim with the weapon
-		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
-		Character->bUseControllerRotationYaw = true;
-	}
-}
-
-
-
-void UCombatComponent::TraceUnderCrosshairs(FHitResult& TraceHitResult)
-{
-	FVector2D ViewportSize;
-	if (GEngine && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->GetViewportSize(ViewportSize);
-	}
-	FVector2D CrossHairLocation(ViewportSize.X/2, ViewportSize.Y/2);
-	FVector CrosshairWorldPosition;
-	FVector CrosshairWorldDirection;
-
-	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
-		UGameplayStatics::GetPlayerController(this,0),
-		CrossHairLocation,
-		CrosshairWorldPosition,
-		CrosshairWorldDirection
-		);
-
-	if (bScreenToWorld)
-	{
-		FVector Start = CrosshairWorldPosition;
-		if (Character)
-		{
-			float DistanceToCharacter = (Character->GetActorLocation() - Start).Size();
-			Start += CrosshairWorldDirection*(DistanceToCharacter + 50.f);
-		}
-
-		
-		FVector End = Start + CrosshairWorldDirection * TRACE_LENGHT;
-
-
-		GetWorld()->LineTraceSingleByChannel(TraceHitResult,
-			Start,
-			End,
-			ECC_Visibility
-		);
-		if (TraceHitResult.GetActor() && TraceHitResult.GetActor()->Implements<UInteractWithCrosshairsInterface>())
-		{
-			HUDPackage.CrosshairColor = FLinearColor::Red;
-			bEnemyInScope = true;
-		}
-		else
-		{
-			HUDPackage.CrosshairColor = FLinearColor::White;
-			bEnemyInScope = false;
-		}
-		if (!TraceHitResult.bBlockingHit) TraceHitResult.ImpactPoint = End;
-	}
-}
-
-
-void UCombatComponent::FireButtonPressed(bool bPressed)
-{
-	bFireButtonPressed = bPressed;
-
-	if (bFireButtonPressed)
-	{
-		FHitResult HitResult;
-		TraceUnderCrosshairs(HitResult);
-		ServerFire(HitResult.ImpactPoint);
-		if (EquippedWeapon)
-		{
-			CrosshairShootingFactor = 1.f;
-		}
-	}
-}
-
-void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
-{
-	if (EquippedWeapon == nullptr) return;
-	EquippedWeapon->Fire(TraceHitTarget);
-	MulticastFire(TraceHitTarget);
-}
-
-void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
-{
-	if (EquippedWeapon == nullptr) return;
-	if (Character)
-	{
-		Character->PlayFireMontage(bAiming);
-		EquippedWeapon->FireFx();
-	}
-}
-
-
-
-void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
-{
-	// Safety check: ensure both character and weapon exist
-	if (Character == nullptr || WeaponToEquip == nullptr)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Equipped Error");
-		return;
-	}
-
-	// Debug message for successful weapon equip
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Equipped"));
-
-	// Assign and configure the equipped weapon
-	EquippedWeapon = WeaponToEquip;
-	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
-
-	// Attach the weapon to the character’s right hand socket
-	const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
-	if (HandSocket)
-	{
-		HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
-	}
-
-	// Set the character as the owner of the weapon
-	EquippedWeapon->SetOwner(Character);
-
-	// Update rotation settings for aiming
-	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
-	Character->bUseControllerRotationYaw = true;
-}
-

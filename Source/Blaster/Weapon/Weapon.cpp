@@ -39,22 +39,6 @@ AWeapon::AWeapon()
 	
 }
 
-void AWeapon::Fire(const FVector& HitTarget)
-{
-	if (CasingClass)
-	{
-		const USkeletalMeshSocket* AmmoEjectSocket = GetWeaponMesh()->GetSocketByName(FName("AmmoEject"));
-		if (AmmoEjectSocket)
-		{
-			FTransform SocketTransform = AmmoEjectSocket->GetSocketTransform(GetWeaponMesh());
-			UWorld* World = GetWorld();
-			if (World)
-			{
-				World->SpawnActor<ACasing>(CasingClass, SocketTransform.GetLocation(),SocketTransform.GetRotation().Rotator());
-			}
-		}
-	}
-}
 
 void AWeapon::BeginPlay()
 {
@@ -144,10 +128,32 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 	}
 }
 
+void AWeapon::Fire(const FVector& HitTarget)
+{
+	
+}
+
 void AWeapon::FireFx()
 {
 	if (FireAnimation)
 	{
 		WeaponMesh->PlayAnimation(FireAnimation,false);
+	}
+}
+
+void AWeapon::SpawnCasing()
+{
+	if (CasingClass)
+	{
+		const USkeletalMeshSocket* AmmoEjectSocket = GetWeaponMesh()->GetSocketByName(FName("AmmoEject"));
+		if (AmmoEjectSocket)
+		{
+			FTransform SocketTransform = AmmoEjectSocket->GetSocketTransform(GetWeaponMesh());
+			UWorld* World = GetWorld();
+			if (World)
+			{
+				World->SpawnActor<ACasing>(CasingClass, SocketTransform.GetLocation(),SocketTransform.GetRotation().Rotator());
+			}
+		}
 	}
 }
