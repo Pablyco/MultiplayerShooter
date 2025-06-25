@@ -80,6 +80,9 @@ private:
 	float CrosshairInAirFactor;
 	float CrosshairAimFactor;
 	float CrosshairShootingFactor;
+	float CrosshairEnemyFactor;
+
+	bool bEnemyInScope;
 
 	FVector HitTarget;
 
