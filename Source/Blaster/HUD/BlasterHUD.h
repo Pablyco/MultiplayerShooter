@@ -17,16 +17,24 @@ public:
 	
 	UPROPERTY()
 	class UTexture2D* CrosshairsCenter;
+	
 	UPROPERTY()
 	UTexture2D* CrosshairsLeft;
+	
 	UPROPERTY()
 	UTexture2D* CrosshairsRight;
+	
 	UPROPERTY()
 	UTexture2D* CrosshairsTop;
+	
 	UPROPERTY()
 	UTexture2D* CrosshairsBottom;
+	
 	UPROPERTY()
 	float CrosshairSpread;
+	
+	UPROPERTY()
+	FLinearColor CrosshairColor;
 };
 
 UCLASS()
@@ -39,7 +47,7 @@ public:
 private:
 	FHUDPackage HUDPackage;
 
-	void DrawCrosshair(UTexture2D* Texture, FVector2d ViewportCenter,FVector2d Spread);
+	void DrawCrosshair(UTexture2D* Texture, FVector2d ViewportCenter,FVector2d Spread, FLinearColor CrosshairColor);
 
 	UPROPERTY(EditAnywhere)
 	float CrosshairSpreadMax = 16.f;
