@@ -37,7 +37,13 @@ private:
 	UNiagaraSystem* ImpactParticles;
 
 	UPROPERTY(EditAnywhere)
+	UNiagaraSystem* ImpactPlayerParticle;
+
+	bool bPlayerImpact;
+	
+	UPROPERTY(EditAnywhere)
 	class USoundCue* ImpactSound;
+
 
 public:
 	virtual void Tick(float DeltaTime) override;

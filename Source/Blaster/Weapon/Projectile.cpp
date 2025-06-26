@@ -36,9 +36,16 @@ void AProjectile::Destroyed()
 {
 	Super::Destroyed();
 
-	if (ImpactParticles)
+	if (ImpactPlayerParticle && bPlayerImpact)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,ImpactParticles,GetActorLocation());
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,ImpactPlayerParticle,GetActorLocation());
+	}
+	else
+	{
+		if (ImpactParticles)
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,ImpactParticles,GetActorLocation());
+		}
 	}
 	if (ImpactSound)
 	{
@@ -66,10 +73,15 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimi
 {
 	if (ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor))
 	{
+		bPlayerImpact = true;
 		if (BlasterCharacter->HasAuthority())
 		{
 			BlasterCharacter->MulticastHit();
 		}
+	}
+	else
+	{
+		bPlayerImpact = false;
 	}
 	
 	Destroy();
