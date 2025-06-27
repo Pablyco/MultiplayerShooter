@@ -69,6 +69,7 @@ protected:
 	void PollInit();
 private:
 
+	UPROPERTY()
 	class ABlasterPlayerController* BlasterController;
 	
 	UPROPERTY(VisibleAnywhere,Category= "Camera")
@@ -210,7 +211,7 @@ private:
 	UPROPERTY(EditAnywhere,Category= "Elim")
 	USoundCue* DeathSound;
 	
-
+	UPROPERTY()
 	class ABlasterPlayerState* BlasterPlayerState;
 
 public:
