@@ -29,7 +29,6 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
-	void UpdateHUDHealth();
 	void PlayFireMontage(bool bAiming);
 	void PlayElimMontage();
 	virtual void OnRep_ReplicatedMovement() override;
@@ -65,6 +64,9 @@ protected:
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	                    class AController* InstigatorController, AActor* DamageCauser);
+	void UpdateHUDHealth();
+	//Poll for any relevant classes and initialize our HUD 
+	void PollInit();
 private:
 
 	class ABlasterPlayerController* BlasterController;
@@ -208,7 +210,8 @@ private:
 	UPROPERTY(EditAnywhere,Category= "Elim")
 	USoundCue* DeathSound;
 	
-	
+
+	class ABlasterPlayerState* BlasterPlayerState;
 
 public:
 

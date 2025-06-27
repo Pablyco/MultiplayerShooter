@@ -17,6 +17,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Blaster/GameMode/BlasterGameMode.h"
+#include "Blaster/PlayerState/BlasterPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 
@@ -115,6 +116,7 @@ void ABlasterCharacter::Tick(float DeltaTime)
 	}
 	
 	HideCameraIfCharacterClose();
+	PollInit();
 }
 
 void ABlasterCharacter::HideCameraIfCharacterClose()
@@ -606,5 +608,17 @@ void ABlasterCharacter::UpdateHUDHealth()
 	if (BlasterController)
 	{
 		BlasterController->SetHUDHealth(Health,MaxHealth);
+	}
+}
+
+void ABlasterCharacter::PollInit()
+{
+	if (BlasterPlayerState == nullptr)
+	{
+		BlasterPlayerState = GetPlayerState<ABlasterPlayerState>();
+		if (BlasterPlayerState)
+		{
+			BlasterPlayerState->AddToScore(0.f);
+		}
 	}
 }
