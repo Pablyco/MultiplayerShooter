@@ -6,6 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Blaster/Blaster.h"
 #include "Blaster/BlasterComponents/CombatComponent.h"
 #include "Blaster/PlayerController/BlasterPlayerController.h"
@@ -16,6 +17,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Blaster/GameMode/BlasterGameMode.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 
 // Sets default values
 ABlasterCharacter::ABlasterCharacter()
@@ -144,6 +147,10 @@ void ABlasterCharacter::OnRep_ReplicatedMovement()
 
 void ABlasterCharacter::Elim()
 {
+	if (Combat && Combat->EquippedWeapon)
+	{
+		Combat->EquippedWeapon->Dropped();
+	}
 	MulticastElim();
 	GetWorldTimerManager().SetTimer(ElimTimer,this,&ABlasterCharacter::ElimTimerFinish,ElimDelay);
 }
@@ -153,6 +160,7 @@ void ABlasterCharacter::MulticastElim_Implementation()
 	bEliminated = true;
 	PlayElimMontage();
 
+	// Start Dissolve Effect
 	if (DissolveMaterialInstance)
 	{
 		DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance,this);
@@ -162,6 +170,27 @@ void ABlasterCharacter::MulticastElim_Implementation()
 		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Glow"),200.f);
 	}
 	StartDissolve();
+
+	//Disable Character Movement
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->StopMovementImmediately();
+	if (BlasterController)
+	{
+		DisableInput(BlasterController);
+	}
+	// Disable collision
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Death Particle Effect
+	if (DeathParticleEffect && DeathSound)
+	{
+		FVector DeathLocation = GetMesh()->GetBoneLocation(FName("root"),EBoneSpaces::WorldSpace);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(),DeathParticleEffect,DeathLocation);
+
+		UGameplayStatics::PlaySoundAtLocation(this,DeathSound,GetActorLocation());
+	}
+	
 }
 
 void ABlasterCharacter::ElimTimerFinish()
@@ -257,17 +286,11 @@ void ABlasterCharacter::EquipButtonPressed()
 		if (HasAuthority())
 		{
 			Combat->EquipWeapon(OverlappingWeapon);
-			GEngine->AddOnScreenDebugMessage(-1,1.0f,FColor::Yellow,TEXT("Authority"));
 		}
 		else
 		{
 			ServerEquipButtonPressed();
-			GEngine->AddOnScreenDebugMessage(-1,1.0f,FColor::Yellow,TEXT("Client"));
 		}
-	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1,1.0f,FColor::Red,TEXT("NO COMBAT"));
 	}
 }
 
@@ -394,7 +417,6 @@ void ABlasterCharacter::UpdateDissolveMaterial(float DissolveValue)
 {
 	if (DynamicDissolveMaterialInstance)
 	{
-		UE_LOG(LogTemp,Warning,TEXT("Dissolve Value: %f"), DissolveValue);
 		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
 	}
 }

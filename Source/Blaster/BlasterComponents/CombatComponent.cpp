@@ -160,6 +160,15 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	// Called on clients when EquippedWeapon is updated via replication
 	if (EquippedWeapon && Character)
 	{
+		EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+
+		// Attach the weapon to the character’s right hand socket
+		const USkeletalMeshSocket* HandSocket = Character->GetMesh()->GetSocketByName(FName("RightHandSocket"));
+		if (HandSocket)
+		{
+			HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
+		}
+		
 		// Update character rotation behavior to aim with the weapon
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
 		Character->bUseControllerRotationYaw = true;

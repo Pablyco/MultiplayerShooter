@@ -32,6 +32,7 @@ public:
 	virtual void FireFx();
 	void SpawnCasing();
 	virtual void Fire(const FVector& HitTarget);
+	void Dropped();
 
 
 	UPROPERTY(EditAnywhere, Category=Crosshairs)

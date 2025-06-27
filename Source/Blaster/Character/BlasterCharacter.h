@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NiagaraSystem.h"
 #include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "GameFramework/Character.h"
 #include "Blaster/Interfaces/InteractWithCrosshairsInterface.h"
@@ -37,6 +38,8 @@ public:
 	
 	UFUNCTION(NetMulticast,Reliable)
 	void MulticastElim();
+
+	
 
 protected:
 
@@ -175,6 +178,7 @@ private:
 	/**
 	 * Dissolve Effect
 	 **/
+	
 	UPROPERTY(VisibleAnywhere)
 	UTimelineComponent* DissolveTimeline;
 	FOnTimelineFloat DissolveTrack;
@@ -187,13 +191,23 @@ private:
 	void StartDissolve();
 
 	//Dynamic instance of a material that we can change at runetime.
-	UPROPERTY(VisibleAnywhere,Category= Elim)
+	UPROPERTY(VisibleAnywhere,Category= "Elim")
 	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance;
 
 	//Material instance set on blueprints, used with the dynamic material instance. 
-	UPROPERTY(EditAnywhere, Category= Elim)
+	UPROPERTY(EditAnywhere, Category= "Elim")
 	UMaterialInstance* DissolveMaterialInstance;
 
+	/**
+	* Death Particle Effect
+	**/
+
+	UPROPERTY(EditAnywhere,Category= "Elim")
+	UNiagaraSystem* DeathParticleEffect;
+
+	UPROPERTY(EditAnywhere,Category= "Elim")
+	USoundCue* DeathSound;
+	
 	
 
 public:
@@ -210,6 +224,8 @@ public:
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
 	FORCEINLINE bool IsEliminated() const { return bEliminated; };
+	FORCEINLINE float GetHealth() const { return Health; }
+	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 };
 
 
