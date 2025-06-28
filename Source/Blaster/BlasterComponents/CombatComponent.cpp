@@ -73,7 +73,12 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 
 void UCombatComponent::Fire()
 {
-	UE_LOG(LogTemp, Warning, TEXT("%s"), bCanFire ? TEXT("Fire") : TEXT("Can't fire"));
+	Character = Character == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : Character;
+	if (Character)
+	{
+		bCanFire = bCanFire && !Character->GetCharacterMovement()->IsFalling();
+	}
+	
 	if (bCanFire)
 	{
 		bCanFire = false;
@@ -116,7 +121,7 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& Trac
 
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
-	if (EquippedWeapon == nullptr) return;
+	if (EquippedWeapon == nullptr) return;	
 	if (Character)
 	{
 		Character->PlayFireMontage(bAiming);
@@ -127,10 +132,11 @@ void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& T
 void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
 	// Safety check: ensure both character and weapon exist
-	if (Character == nullptr || WeaponToEquip == nullptr)
+	if (Character == nullptr || WeaponToEquip == nullptr) return;
+
+	if (EquippedWeapon)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Equipped Error");
-		return;
+		EquippedWeapon->Dropped();
 	}
 
 	// Debug message for successful weapon equip
@@ -149,6 +155,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 
 	// Set the character as the owner of the weapon
 	EquippedWeapon->SetOwner(Character);
+	EquippedWeapon->SetHUDAmmo();
 
 	// Update rotation settings for aiming
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false;

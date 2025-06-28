@@ -57,8 +57,9 @@ ABlasterCharacter::ABlasterCharacter()
 	GetCharacterMovement()->RotationRate = FRotator(0.f,0.f,850.f);
 
 	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
-	NetUpdateFrequency = 66.f;
-	MinNetUpdateFrequency = 33.f;
+	
+	SetNetUpdateFrequency(66.f);
+	SetMinNetUpdateFrequency(33.f);
 
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("Timeline"));
 	
@@ -95,6 +96,12 @@ void ABlasterCharacter::BeginPlay()
 	if (HasAuthority())
 	{
 		OnTakeAnyDamage.AddDynamic(this,&ABlasterCharacter::ReceiveDamage);
+	}
+
+	BlasterController = Cast<ABlasterPlayerController>(GetController());
+	if (BlasterController)
+	{
+		BlasterController->SetHUDEliminated(false);
 	}
 }
 
@@ -153,13 +160,22 @@ void ABlasterCharacter::Elim()
 	{
 		Combat->EquippedWeapon->Dropped();
 	}
+	
 	MulticastElim();
 	GetWorldTimerManager().SetTimer(ElimTimer,this,&ABlasterCharacter::ElimTimerFinish,ElimDelay);
+	
 }
 
 void ABlasterCharacter::MulticastElim_Implementation()
 {
 	bEliminated = true;
+	
+	if (BlasterController)
+	{
+		BlasterController->SetHUDWeaponAmmo(0);
+		BlasterController->SetHUDEliminated(true);
+	}
+	
 	PlayElimMontage();
 
 	// Start Dissolve Effect
@@ -512,7 +528,7 @@ void ABlasterCharacter::Jump()
 
 void ABlasterCharacter::FireButtonPressed()
 {
-	if (Combat)
+	if (Combat && !GetMovementComponent()->IsFalling())
 	{
 		Combat->FireButtonPressed(true);
 	}

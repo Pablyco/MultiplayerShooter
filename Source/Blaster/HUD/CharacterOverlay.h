@@ -21,13 +21,19 @@ public:
 	class UTextBlock* HealthText;
 
 	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* ScoreText;
+	UTextBlock* ScoreText;
 
 	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* ScoreAmountText;
+	UTextBlock* ScoreAmountText;
 
 	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* DefeatAmountText;
+	UTextBlock* DefeatAmountText;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* AmmoAmountText;
+
+	UPROPERTY(meta = (BindWidget))
+	class UBorder* BorderEliminated;
 	
 private:
 

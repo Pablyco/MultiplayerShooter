@@ -4,6 +4,7 @@
 
 #include "Casing.h"
 #include "Blaster/Character/BlasterCharacter.h"
+#include "Blaster/PlayerController/BlasterPlayerController.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
@@ -72,7 +73,23 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLif
 
 	// Replicate the WeaponState variable across the network
 	DOREPLIFETIME(AWeapon, WeaponState);
+	DOREPLIFETIME(AWeapon, Ammo);
 }
+
+void AWeapon::OnRep_Owner()
+{
+	Super::OnRep_Owner();
+	if (Owner == nullptr)
+	{
+		BlasterOwnerCharacter = nullptr;
+		BlasterOwnerController = nullptr;
+	}
+	else
+	{
+		SetHUDAmmo();
+	}
+}
+
 // Called when a pawn enters the detection sphere
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                               UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -93,6 +110,38 @@ void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 		BlasterCharacter->SetOverlappingWeapon(nullptr);
 	}
 }
+
+
+void AWeapon::SetHUDAmmo()
+{
+	BlasterOwnerCharacter = BlasterOwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : BlasterOwnerCharacter;
+	
+	if (BlasterOwnerCharacter)
+	{
+		BlasterOwnerController = BlasterOwnerController == nullptr
+			                         ? Cast<ABlasterPlayerController>(BlasterOwnerCharacter->GetController())
+			                         : BlasterOwnerController;
+
+		if (BlasterOwnerController)
+		{
+			BlasterOwnerController->SetHUDWeaponAmmo(Ammo);
+		}
+	}
+}
+
+void AWeapon::SpendRound()
+{
+	Ammo--;
+	SetHUDAmmo();
+	
+}
+
+void AWeapon::OnRep_Ammo()
+{
+	SetHUDAmmo();
+}
+
+
 // Sets the current state of the weapon and updates components accordingly
 void AWeapon::SetWeaponState(EWeaponState State)
 {
@@ -155,7 +204,7 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 
 void AWeapon::Fire(const FVector& HitTarget)
 {
-	
+	SpendRound();
 }
 
 void AWeapon::Dropped()
@@ -164,6 +213,8 @@ void AWeapon::Dropped()
 	FDetachmentTransformRules DetachRules(EDetachmentRule::KeepWorld,true);
 	WeaponMesh->DetachFromComponent(DetachRules);
 	SetOwner(nullptr);
+	BlasterOwnerCharacter = nullptr;
+	BlasterOwnerController = nullptr;
 }
 
 void AWeapon::FireFx()

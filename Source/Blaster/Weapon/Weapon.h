@@ -26,6 +26,8 @@ public:
 	AWeapon();
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRep_Owner() override;
+	void SetHUDAmmo();
 	void ShowPickupWidget(bool bShowWidget);
 	
 	//Multicast Event for show particles to all clients
@@ -34,7 +36,9 @@ public:
 	virtual void Fire(const FVector& HitTarget);
 	void Dropped();
 
-
+	/**
+	* "Textures"
+	**/
 	UPROPERTY(EditAnywhere, Category=Crosshairs)
 	class UTexture2D* CrosshairsCenter;
 
@@ -80,6 +84,7 @@ protected:
 
 	UFUNCTION()
 	void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	
 
 private:
 	UPROPERTY(VisibleAnywhere, Category= "Weapon Properties")
@@ -103,16 +108,23 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class ACasing> CasingClass;
 
-	/// 
-	///
-	/// Textures for the weapon crosshairs.
-	///
-	///
-	///
-	///
-	///
-	
+	UPROPERTY(EditAnywhere, ReplicatedUsing= OnRep_Ammo)
+	int32 Ammo;
 
+	UFUNCTION()
+	void OnRep_Ammo();
+
+	void SpendRound();
+
+	UPROPERTY(EditAnywhere)
+	int32 MagCapacity;
+
+
+	UPROPERTY()
+	class ABlasterCharacter* BlasterOwnerCharacter;
+	
+	UPROPERTY()
+	class ABlasterPlayerController* BlasterOwnerController;
 
 public:
 	void SetWeaponState(EWeaponState State);

@@ -6,6 +6,7 @@
 #include "Blaster/Character/BlasterCharacter.h"
 #include "Blaster/HUD/BlasterHUD.h"
 #include "Blaster/HUD/CharacterOverlay.h"
+#include "Components/Border.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 
@@ -62,6 +63,33 @@ void ABlasterPlayerController::SetHUDDefeats(int32 Defeats)
 	}
 }
 
+void ABlasterPlayerController::SetHUDWeaponAmmo(int32 Ammo)
+{
+	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
+
+	bool bHUDValid = BlasterHUD && BlasterHUD->CharacterOverlay && BlasterHUD
+		->CharacterOverlay->AmmoAmountText;
+
+	if (bHUDValid)
+	{
+		FString AmmoText = FString::Printf(TEXT("Ammo: %d"), Ammo);
+		BlasterHUD->CharacterOverlay->AmmoAmountText->SetText(FText::FromString(AmmoText));
+	}
+}
+
+void ABlasterPlayerController::SetHUDEliminated(bool Eliminated)
+{
+	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD;
+
+	bool bHUDValid = BlasterHUD && BlasterHUD->CharacterOverlay && BlasterHUD
+		->CharacterOverlay->BorderEliminated;
+	
+	if (bHUDValid)
+	{
+		BlasterHUD->CharacterOverlay->BorderEliminated->SetVisibility(Eliminated ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
+	}
+}
+
 void ABlasterPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -69,5 +97,6 @@ void ABlasterPlayerController::OnPossess(APawn* InPawn)
 	if (ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(InPawn))
 	{
 		SetHUDHealth(BlasterCharacter->GetHealth(),BlasterCharacter->GetMaxHealth());
+		SetHUDEliminated(false);
 	}
 }
