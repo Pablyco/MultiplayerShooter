@@ -131,7 +131,9 @@ void AWeapon::SetHUDAmmo()
 
 void AWeapon::SpendRound()
 {
-	Ammo--;
+	UE_LOG(LogTemp,Warning,TEXT("ammo %d"),Ammo);
+	Ammo = FMath::Clamp(Ammo - 1,0,MagCapacity);
+	UE_LOG(LogTemp,Warning,TEXT("ammo %d"),Ammo);
 	SetHUDAmmo();
 	
 }
@@ -168,6 +170,12 @@ void AWeapon::SetWeaponState(EWeaponState State)
 		break;
 	}
 }
+
+bool AWeapon::IsEmpty()
+{
+	return Ammo <= 0;
+}
+
 // Called automatically when WeaponState is replicated
 void AWeapon::OnRep_WeaponState()
 {
