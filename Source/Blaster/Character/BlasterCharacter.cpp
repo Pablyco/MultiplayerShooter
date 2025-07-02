@@ -20,6 +20,7 @@
 #include "Blaster/PlayerState/BlasterPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "Blaster/Weapon/WeaponTypes.h"
 
 // Sets default values
 ABlasterCharacter::ABlasterCharacter()
@@ -252,6 +253,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 		EnhancedInputComponent->BindAction(FireAction,ETriggerEvent::Started,this,&ABlasterCharacter::FireButtonPressed);
 		EnhancedInputComponent->BindAction(FireAction,ETriggerEvent::Completed,this,&ABlasterCharacter::FireButtonReleased);
+
+		EnhancedInputComponent->BindAction(ReloadAction,ETriggerEvent::Started,this,&ABlasterCharacter::ReloadButtonPressed);
 	}
 
 }
@@ -321,6 +324,14 @@ void ABlasterCharacter::CrouchButtonPressed()
 	else
 	{
 		Crouch();
+	}
+}
+
+void ABlasterCharacter::ReloadButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->Reload();
 	}
 }
 
@@ -478,6 +489,8 @@ FVector ABlasterCharacter::GetHitTarget() const
 	return Combat->HitTarget;
 }
 
+
+
 void ABlasterCharacter::SimProxiesTurn()
 {
 	if (!Combat || !Combat->EquippedWeapon ) return;
@@ -590,8 +603,28 @@ void ABlasterCharacter::PlayHitReactMontage()
 	}
 }
 
+void ABlasterCharacter::PlayReloadMontage()
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	
+	if (AnimInstance && ReloadMontage)
+	{
+		AnimInstance->Montage_Play(ReloadMontage);
+		FName SectionName;
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = FName("Rifle");
+			break;
+		}
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
 void ABlasterCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
-	class AController* InstigatorController, AActor* DamageCauser)
+                                      class AController* InstigatorController, AActor* DamageCauser)
 {
 	//server only
 	Health = FMath::Clamp(Health-Damage, 0.0f, MaxHealth);
@@ -638,4 +671,10 @@ void ABlasterCharacter::PollInit()
 			BlasterPlayerState->AddToDefeats(0);
 		}
 	}
+}
+
+ECombatState ABlasterCharacter::GetCombatState() const
+{
+	if (Combat == nullptr) return ECombatState::ECS_MAX;
+	return Combat->CombatState;
 }

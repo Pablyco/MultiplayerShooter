@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "NiagaraSystem.h"
+#include "Blaster/BlasterTypes/CombatStates.h"
 #include "Blaster/BlasterTypes/TurningInPlace.h"
 #include "GameFramework/Character.h"
 #include "Blaster/Interfaces/InteractWithCrosshairsInterface.h"
@@ -31,6 +32,7 @@ public:
 	virtual void PostInitializeComponents() override;
 	void PlayFireMontage(bool bAiming);
 	void PlayElimMontage();
+	void PlayReloadMontage();
 	virtual void OnRep_ReplicatedMovement() override;
 	
 	void Elim();
@@ -51,6 +53,7 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void EquipButtonPressed();
 	void CrouchButtonPressed();
+	void ReloadButtonPressed();
 	void AimButtonPressed();
 	void AimButtonReleased();
 	void CalculateAOPitch();
@@ -109,6 +112,10 @@ private:
 	/** Fire Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* FireAction;
+
+	/** Reload Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ReloadAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(allowPrivateAccess="true"))
 	class UWidgetComponent* OverheadWidget;
@@ -133,6 +140,9 @@ private:
 	ETurningInPlace TurningInPlace;
 	void TurnInPlace(float DeltaTime);
 
+	/**
+	 * Animation Montages
+	 */
 	UPROPERTY(EditAnywhere,Category= Combat)
 	class UAnimMontage* FireWeaponMontage;
 
@@ -141,6 +151,9 @@ private:
 
 	UPROPERTY(EditAnywhere,Category= Combat)
 	UAnimMontage* ElimMontage;
+
+	UPROPERTY(EditAnywhere,Category= Combat)
+	UAnimMontage* ReloadMontage;
 	
 	void HideCameraIfCharacterClose();
 
@@ -231,6 +244,7 @@ public:
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	FORCEINLINE float GetElimDelay() const { return ElimDelay; }
+	ECombatState GetCombatState() const;
 };
 
 

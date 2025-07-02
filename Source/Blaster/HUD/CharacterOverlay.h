@@ -33,7 +33,12 @@ public:
 	UTextBlock* AmmoAmountText;
 
 	UPROPERTY(meta = (BindWidget))
+	UTextBlock* CarriedAmountText;
+
+	UPROPERTY(meta = (BindWidget))
 	class UBorder* BorderEliminated;
+
+	
 	
 private:
 
