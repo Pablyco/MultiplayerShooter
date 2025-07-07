@@ -36,6 +36,8 @@ public:
 	void SpawnCasing();
 	virtual void Fire(const FVector& HitTarget);
 	void Dropped();
+	void AddAmmo(int32 AmmoToAdd);
+	void PlayEquippedSound();
 
 	/**
 	* "Textures"
@@ -75,6 +77,9 @@ public:
 
 	UPROPERTY(EditAnywhere,Category="Combat")
 	bool bAutomatic = true;
+
+	UPROPERTY(EditAnywhere,Category="Combat")
+	class USoundCue* EquipSound;
 
 protected:
 	virtual void BeginPlay() override;
@@ -139,4 +144,6 @@ public:
 	FORCEINLINE float GetZoomInterpSpeed() const {return ZoomInterpSpeed;}
 	bool IsEmpty();
 	FORCEINLINE EWeaponType GetWeaponType() const {return WeaponType;}
+	FORCEINLINE int32 GetAmmo() const {return Ammo;}
+	FORCEINLINE int32 GetMagCapacity() const {return MagCapacity;}
 };

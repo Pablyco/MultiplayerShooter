@@ -111,13 +111,17 @@ void UCombatComponent::FireTimerFinished()
 	{
 		Fire();
 	}
+	if (EquippedWeapon->IsEmpty())
+	{
+		Reload();
+	}
 }
 
 bool UCombatComponent::CanFire()
 {
 	if (EquippedWeapon == nullptr) return false;
 
-	return !EquippedWeapon->IsEmpty() && bCanFire;
+	return !EquippedWeapon->IsEmpty() && bCanFire && CombatState == ECombatState::ECS_Unoccupied;
 }
 
 void UCombatComponent::OnRep_CarriedAmmo()
@@ -143,7 +147,7 @@ void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& Trac
 void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	if (EquippedWeapon == nullptr) return;	
-	if (Character)
+	if (Character && CombatState == ECombatState::ECS_Unoccupied)
 	{
 		Character->PlayFireMontage(bAiming);
 		EquippedWeapon->FireFx();
@@ -188,6 +192,13 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	{
 		Controller->SetHUDCarriedAmmo(CarriedAmmo);
 	}
+	
+	if (EquippedWeapon->IsEmpty())
+	{
+		Reload();
+	}
+
+	EquippedWeapon->PlayEquippedSound();
 
 	// Update rotation settings for aiming
 	Character->GetCharacterMovement()->bOrientRotationToMovement = false;
@@ -207,6 +218,8 @@ void UCombatComponent::OnRep_EquippedWeapon()
 		{
 			HandSocket->AttachActor(EquippedWeapon, Character->GetMesh());
 		}
+
+		EquippedWeapon->PlayEquippedSound();
 		
 		// Update character rotation behavior to aim with the weapon
 		Character->GetCharacterMovement()->bOrientRotationToMovement = false;
@@ -225,6 +238,7 @@ void UCombatComponent::Reload()
 void UCombatComponent::ServerReload_Implementation()
 {
 	if (Character == nullptr) return;
+	
 	CombatState = ECombatState::ECS_Reloading;
 	HandleReload();
 }
@@ -235,13 +249,50 @@ void UCombatComponent::FinishReloading()
 	if (Character->HasAuthority())
 	{
 		CombatState = ECombatState::ECS_Unoccupied;
+		UpdateAmmoValues();
+	}
+	if (bFireButtonPressed)
+	{
+		Fire();
 	}
 }
+void UCombatComponent::UpdateAmmoValues()
+{
+	if (EquippedWeapon == nullptr) return;
 
+	int32 ReloadAmount = AmountToReload();
+	
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	{
+		CarriedAmmoMap[EquippedWeapon->GetWeaponType()] -= ReloadAmount;
+		CarriedAmmo = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+	}
+	Controller = Controller == nullptr ? Cast<ABlasterPlayerController>(Character->GetController()) : Controller;
+	if (Controller)
+	{
+		Controller->SetHUDCarriedAmmo(CarriedAmmo);
+	}
+	
+	EquippedWeapon->AddAmmo(ReloadAmount);
+}
 
 void UCombatComponent::HandleReload()
 {
 	Character->PlayReloadMontage();
+}
+
+int32 UCombatComponent::AmountToReload()
+{
+	if (EquippedWeapon == nullptr) return 0;
+	int32 RoomInMag = EquippedWeapon->GetMagCapacity() - EquippedWeapon->GetAmmo();
+
+	if (CarriedAmmoMap.Contains(EquippedWeapon->GetWeaponType()))
+	{
+		int32 AmountCarried = CarriedAmmoMap[EquippedWeapon->GetWeaponType()];
+		int32 Least = FMath::Min(RoomInMag,AmountCarried);
+		return FMath::Clamp(RoomInMag,0,Least);
+	}
+	return 0;
 }
 
 void UCombatComponent::OnRep_CombatState()
@@ -251,6 +302,11 @@ void UCombatComponent::OnRep_CombatState()
 		case ECombatState::ECS_Reloading:
 			HandleReload();
 			break;
+		case ECombatState::ECS_Unoccupied:
+			if (bFireButtonPressed)
+			{
+				Fire();
+			}
 	}
 }
 
@@ -389,7 +445,7 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 {
 	if (EquippedWeapon == nullptr) return;
 
-	if (bAiming)
+	if (bAiming && CombatState != ECombatState::ECS_Reloading)
 	{
 		CurrentFOV = FMath::FInterpTo(CurrentFOV,EquippedWeapon->GetZoomedFOV(),DeltaTime,EquippedWeapon->ZoomInterpSpeed);
 	}

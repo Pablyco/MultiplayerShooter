@@ -8,6 +8,8 @@
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -223,6 +225,20 @@ void AWeapon::Dropped()
 	SetOwner(nullptr);
 	BlasterOwnerCharacter = nullptr;
 	BlasterOwnerController = nullptr;
+}
+
+void AWeapon::AddAmmo(int32 AmmoToAdd)
+{
+	Ammo = FMath::Clamp(Ammo + AmmoToAdd,0,MagCapacity);
+	SetHUDAmmo();
+}
+
+void AWeapon::PlayEquippedSound()
+{
+	if (EquipSound && Owner)
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(),EquipSound,Owner->GetActorLocation());
+	}
 }
 
 void AWeapon::FireFx()

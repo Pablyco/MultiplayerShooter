@@ -30,6 +30,7 @@ public:
 	void EquipWeapon(AWeapon* WeaponToEquip);
 
 	void Reload();
+	void UpdateAmmoValues();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
 
@@ -63,6 +64,7 @@ protected:
 
 	UFUNCTION()
 	void HandleReload();
+	int32 AmountToReload();
 	
 private:
 

@@ -38,6 +38,10 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	class UBorder* BorderEliminated;
 
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* MatchCountdownText;
+
 	
 	
 private:
