@@ -16,6 +16,8 @@ class BLASTER_API ABlasterPlayerController : public APlayerController
 	
 public:
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	void HandleMatchHasStarted();
 	void SetHUDHealth(float Health, float MaxHealth);
 	void SetHUDSCore(float Score);
 	void SetHUDDefeats(int32 Defeats);
@@ -27,6 +29,8 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual float GetServerTime(); // Synced with server world clock
 	virtual void ReceivedPlayer() override; // Sync with server clock as soon as possible
+	void OnMatchStateSet(FName State);
+	
 
 protected:
 	
@@ -52,7 +56,8 @@ protected:
 	float TimeSyncFrequency = 5.f;
 	
 	float TimeSyncRunningTime = 0.f;
-	
+
+	void PollInit();
 private:
 
 	UPROPERTY()
@@ -60,4 +65,21 @@ private:
 
 	float MatchTime = 120.f;
 	uint32 CountdownInt = 0;
+
+	UPROPERTY(ReplicatedUsing=OnRep_MatchState)
+	FName MatchState;
+
+	UFUNCTION()
+	void OnRep_MatchState();
+
+	UPROPERTY()
+	class UCharacterOverlay* CharacterOverlay;
+	
+	bool bInitializeCharacterOverlay = false;
+
+	float HUDHealth;
+	float HUDMaxHealth;
+	float HUDSCore;
+	int32 HUDDefeats;
+	
 };

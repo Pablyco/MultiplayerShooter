@@ -49,10 +49,15 @@ public:
 
 	UPROPERTY()
 	class UCharacterOverlay* CharacterOverlay;
+	
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	TSubclassOf<class UUserWidget> AnnouncementClass;
+
+	UPROPERTY()
+	class UAnnouncement* Announcement;
 
 protected:
 	virtual void BeginPlay() override;
-	void AddCharacterOverlay();
 private:
 	FHUDPackage HUDPackage;
 
@@ -62,6 +67,10 @@ private:
 	float CrosshairSpreadMax = 16.f;
 
 public:
+	void AddCharacterOverlay();
+	
+	void AddAnnouncement();
+	void SetAnnouncementVisibility(ESlateVisibility Visibility);
 
 	FORCEINLINE void SetHUDPackage(const FHUDPackage& Package) { HUDPackage = Package; }
 };
