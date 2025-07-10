@@ -111,7 +111,10 @@ void ABlasterCharacter::Destroyed()
 {
 	Super::Destroyed();
 	
-	if (Combat && Combat->EquippedWeapon)
+	ABlasterGameMode* BlasterGameMode = Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this));
+	bool bMatchInProgress = BlasterGameMode->GetMatchState() == MatchState::InProgress;
+	
+	if (Combat && Combat->EquippedWeapon && !bMatchInProgress)
 	{
 		Combat->EquippedWeapon->Destroy();
 	}
@@ -217,6 +220,10 @@ void ABlasterCharacter::MulticastElim_Implementation()
 	GetCharacterMovement()->StopMovementImmediately();
 
 	bDisableGameplay = true;
+	if (Combat)
+	{
+		Combat->FireButtonPressed(false);
+	}
 	
 	// Disable collision
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
