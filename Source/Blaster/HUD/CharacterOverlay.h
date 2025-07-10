@@ -42,7 +42,10 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* MatchCountdownText;
 
-	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnMatchIsEnding();
+
+	bool bOnMatchEnding;
 	
 private:
 

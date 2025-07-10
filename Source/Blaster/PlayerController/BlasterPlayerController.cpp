@@ -370,10 +370,15 @@ void ABlasterPlayerController::SetHUDMatchCountdown(float CountdownTime)
 
 	if (bHUDValid)
 	{
-		if (CooldownTime < 0.f)
+		if (CountdownTime < 0.f)
 		{
 			BlasterHUD->CharacterOverlay->MatchCountdownText->SetText(FText());
 			return;
+		}
+		if (CountdownTime < 30.f && !BlasterHUD->CharacterOverlay->bOnMatchEnding)
+		{
+			BlasterHUD->CharacterOverlay->OnMatchIsEnding();
+			BlasterHUD->CharacterOverlay->bOnMatchEnding = true;
 		}
 		
 		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.0f);
