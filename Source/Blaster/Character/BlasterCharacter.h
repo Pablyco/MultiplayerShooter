@@ -81,6 +81,8 @@ private:
 
 	UPROPERTY()
 	class ABlasterPlayerController* BlasterController;
+	UPROPERTY()
+	class ABlasterGameMode* BlasterGameMode;
 	
 	UPROPERTY(VisibleAnywhere,Category= "Camera")
 	class USpringArmComponent* CameraBoom;

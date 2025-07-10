@@ -111,9 +111,9 @@ void ABlasterCharacter::Destroyed()
 {
 	Super::Destroyed();
 	
-	ABlasterGameMode* BlasterGameMode = Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this));
-	bool bMatchInProgress = BlasterGameMode->GetMatchState() == MatchState::InProgress;
 	
+	BlasterGameMode = BlasterGameMode == nullptr ? GetWorld()->GetAuthGameMode<ABlasterGameMode>() : BlasterGameMode;
+	bool bMatchInProgress = BlasterGameMode && BlasterGameMode->GetMatchState() == MatchState::InProgress;
 	if (Combat && Combat->EquippedWeapon && !bMatchInProgress)
 	{
 		Combat->EquippedWeapon->Destroy();
@@ -220,6 +220,7 @@ void ABlasterCharacter::MulticastElim_Implementation()
 	GetCharacterMovement()->StopMovementImmediately();
 
 	bDisableGameplay = true;
+	
 	if (Combat)
 	{
 		Combat->FireButtonPressed(false);
@@ -242,7 +243,8 @@ void ABlasterCharacter::MulticastElim_Implementation()
 
 void ABlasterCharacter::ElimTimerFinish()
 {
-	if (ABlasterGameMode* BlasterGameMode = GetWorld()->GetAuthGameMode<ABlasterGameMode>())
+	BlasterGameMode = BlasterGameMode == nullptr ? GetWorld()->GetAuthGameMode<ABlasterGameMode>() : BlasterGameMode;
+	if (BlasterGameMode)
 	{
 		BlasterGameMode->RequestRespawn(this,Controller);
 	}
@@ -668,9 +670,11 @@ void ABlasterCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const 
 	UpdateHUDHealth();
 	PlayHitReactMontage();
 
+	BlasterGameMode = BlasterGameMode == nullptr ? GetWorld()->GetAuthGameMode<ABlasterGameMode>() : BlasterGameMode;
+
 	if (Health == 0.f)
 	{
-		if (ABlasterGameMode* BlasterGameMode = GetWorld()->GetAuthGameMode<ABlasterGameMode>())
+		if (BlasterGameMode)
 		{
 			//Cast victim ("self") 
 			BlasterController = BlasterController == nullptr ? Cast<ABlasterPlayerController>(Controller) : BlasterController;
