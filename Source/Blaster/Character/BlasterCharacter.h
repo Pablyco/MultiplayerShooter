@@ -40,6 +40,10 @@ public:
 	UFUNCTION(NetMulticast,Reliable)
 	void MulticastElim();
 
+	//a boolean to enable or disable gameplay inputs for example shooting, jumping and so on.
+	UPROPERTY(Replicated)
+	bool bDisableGameplay = false;
+
 	
 
 protected:
@@ -48,7 +52,8 @@ protected:
 	virtual void NotifyControllerChanged() override;
 	
 	virtual void BeginPlay() override;
-
+	virtual void Destroyed() override;
+	void HandleRotateInPlace(float DeltaTime);
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void EquipButtonPressed();
@@ -70,6 +75,8 @@ protected:
 	void UpdateHUDHealth();
 	//Poll for any relevant classes and initialize our HUD 
 	void PollInit();
+
+	
 private:
 
 	UPROPERTY()
@@ -245,6 +252,8 @@ public:
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	FORCEINLINE float GetElimDelay() const { return ElimDelay; }
 	ECombatState GetCombatState() const;
+	FORCEINLINE UCombatComponent* GetCombatComponent() const { return Combat; }
+	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 };
 
 
