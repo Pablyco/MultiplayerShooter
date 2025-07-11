@@ -19,7 +19,6 @@ AWeapon::AWeapon()
 {
 	PrimaryActorTick.bCanEverTick = false; // Disable ticking, weapon doesn't need per-frame updates
 	bReplicates = true; // Enable replication for multiplayer
-	SetReplicateMovement(true);
 
 	// Create and configure the weapon mesh
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon Mesh"));

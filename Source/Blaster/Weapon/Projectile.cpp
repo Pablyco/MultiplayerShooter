@@ -5,8 +5,6 @@
 #include "Blaster/Blaster.h"
 #include "Blaster/Character/BlasterCharacter.h"
 #include "Components/BoxComponent.h"
-#include "NiagaraComponent.h"
-#include "NiagaraSystemInstanceController.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
@@ -26,7 +24,10 @@ AProjectile::AProjectile()
 	CollisionBox->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 	CollisionBox->SetCollisionResponseToChannel(ECC_SkeletalMesh, ECR_Block);
 	
-	
+
+
+	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Projectile Movement Component"));
+	ProjectileMovement->bRotationFollowsVelocity = true;
 	
 	
 }
@@ -50,13 +51,6 @@ void AProjectile::Destroyed()
 	{
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ImpactSound, GetActorLocation());
 	}
-	if (TracerComponent)
-	{
-		if (auto SystemInstanceController = TracerComponent->GetSystemInstanceController())
-		{
-			SystemInstanceController->Deactivate();
-		}
-	}
 }
 
 void AProjectile::BeginPlay()
@@ -65,7 +59,7 @@ void AProjectile::BeginPlay()
 
 	if (Tracer)
 	{
-		TracerComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(Tracer,CollisionBox,FName(),GetActorLocation(),GetActorRotation(),EAttachLocation::KeepWorldPosition,false,true);
+		UNiagaraFunctionLibrary::SpawnSystemAttached(Tracer,CollisionBox,FName(),GetActorLocation(),GetActorRotation(),EAttachLocation::KeepWorldPosition,false,true);
 	}
 	
 	if (HasAuthority())
